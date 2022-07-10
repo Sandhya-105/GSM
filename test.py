@@ -146,7 +146,7 @@ class shrubmanagement(DynamicModel):
                     newGrid[x][y] = 1
             elif cell_state == 1 and random.random() < prob_qSE:
                 newGrid[x][y] = 3
-            elif curr_state == 2:
+            elif cell_state == 2:
                 for neighbor in window4total[(x, y)]:
                     if newGrid[neighbor] == 1 and random.random() < prob_qGE:
                         newGrid[neighbor] = 2
