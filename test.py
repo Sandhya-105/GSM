@@ -2,40 +2,27 @@ from pcraster import *
 from pcraster.framework import *
 import random 
 
-shrubdevelopment = 0
 
 class shrubmanagement(DynamicModel):
 
   def __init__(self):
     DynamicModel.__init__(self)
     setclone('mask.map')
-    #self.burn_rate = 'brnR'
       
   def initial(self):
     # initial distribution of shrubs 10%, grass 80%, empty 10%
     #map = uniform(1)
     #initialdistr = ifthenelse(map < 0.1, nominal(3), ifthenelse(map>0.9, nominal(0), nominal(2))) 
-    #initial_d = asc2map("C:\Users\johnk\Desktop\geosim\final_geosim\GitHub\GSM\initialdistr1")
-    #Result = lookupnominal(r"C:\Users\johnk\Desktop\geosim\final_geosim\GitHub\GSM\legend", r"C:\Users\johnk\Desktop\geosim\final_geosim\GitHub\GSM\initialdistr1.txt")
     #self.report(initialdistr, "initialdistr")
     #self.resultMap = self.readmap("initialdistr")
-    #self.report(Result, "initial_d")
     self.resultMap = self.readmap("initialdist2")
-    
-    
-    #self.report(self.resultMap, "result_map")
-    self.adultplants = 40
     self.totalCells = 200 * 200
-    self.currentTimestep = 0
 
-  def dynamic(self): # 0 empty, 1 fire, 2 grass, 3 shrub
-    self.currentTimestep = self.currentTimestep +1 
-    global shrubdevelopment
+  def dynamic(self): # 0 empty, 2 grass, 3 shrub
       
     #establish the parameters, detailed in the paper Table 1
     shrub_empty_rate = 6.8+mapnormal()*2.323
     shrub_grass_rate = 0.387+mapnormal()*0.082
-    shrub_burned_rate = 38.8+mapnormal()*9.768
     shrub_empty_reprd = 0.109+mapnormal()*0.01
     shrub_grass_reprd = 0.061+mapnormal()*0.016
     grass_empty_clonal_rate = 0.5
@@ -48,38 +35,26 @@ class shrubmanagement(DynamicModel):
     #defining local probabilities for the transition functions (q = density), ie how the von neumann neighborhood effects the state of the center cell (probability that if I am a shrub, for example, that I become a grass cell)
     prob_qSE=scalar(ifthen(self.resultMap == 3, window4total(scalar(self.resultMap == 0))/4)) #probability that a shrub cell becomes empty 
     prob_qSG=scalar(ifthen(self.resultMap == 3, window4total(scalar(self.resultMap == 2))/4))
-    prob_qSB=scalar(ifthen(self.resultMap == 3, window4total(scalar(self.resultMap == 1))/4))
     prob_qSS=scalar(ifthen(self.resultMap == 3, window4total(scalar(self.resultMap == 3))/4))
     
     prob_qGE=scalar(ifthen(self.resultMap == 2, window4total(scalar(self.resultMap == 0))/4))
     prob_qGS=scalar(ifthen(self.resultMap == 2, window4total(scalar(self.resultMap == 3))/4))
-    prob_qGB=scalar(ifthen(self.resultMap == 2, window4total(scalar(self.resultMap == 1))/4))
 
     prob_qES=scalar(ifthen(self.resultMap == 0, window4total(scalar(self.resultMap == 3))/4))
     prob_qEG=scalar(ifthen(self.resultMap == 0, window4total(scalar(self.resultMap == 2))/4))
 
-    prob_qBS=scalar(ifthen(self.resultMap == 1, window4total(scalar(self.resultMap == 3))/4))
-    prob_qBG=scalar(ifthen(self.resultMap == 1, window4total(scalar(self.resultMap == 2))/4))
-    prob_qBE=scalar(ifthen(self.resultMap == 1, window4total(scalar(self.resultMap == 0))/4))
 
     #write to disk
     self.report(prob_qSE, "Results/SE")
     self.report(prob_qSG, "Results/SG")
-    self.report(prob_qSB, "Results/SB")
     self.report(prob_qSS, "Results/SS")
     self.report(prob_qGE, "Results/GE")
     self.report(prob_qGS, "Results/GS")
-    self.report(prob_qGB, "Results/GB")
     self.report(prob_qES, "Results/ES")
     self.report(prob_qEG, "Results/EG")
-    self.report(prob_qBS, "Results/BS")
-    self.report(prob_qBG, "Results/BG")
-    self.report(prob_qBE, "Results/BE")
 
-    #t is the total number of cells for empty, burned, grass, and shrub
-    self.resultMap = ifthenelse(self.resultMap == 1, 0, self.resultMap)
+    #t is the total number of cells for empty, grass, and shrub
     t_ec = maptotal(scalar(self.resultMap == 0))
-    t_bc = maptotal(scalar(self.resultMap == 1))
     t_gc= maptotal(scalar(self.resultMap == 2))
     t_sc = maptotal(scalar(self.resultMap == 3))
 
@@ -89,7 +64,6 @@ class shrubmanagement(DynamicModel):
     gp_s = t_sc / self.totalCells #10 percent shrub in initial time step
 
     self.report(t_ec, "Results/t_ec")
-    self.report(t_bc, "Results/t_bc")
     self.report(gp_e, "Results/gp_e")
     self.report(gp_g, "Results/gp_g")
     self.report(gp_s, "Results/gp_s")
@@ -97,32 +71,22 @@ class shrubmanagement(DynamicModel):
 
     #writing the transition rules
     #Colonization of an empty cell by a shrub
-    transition_ES = ((1-prob_qSE) * shrub_empty_rate + shrub_empty_reprd) * prob_qSE
+    transition_ES = ((1-prob_qES) * shrub_empty_rate + shrub_empty_reprd) * prob_qES
     
     #Colonization of an empty cell by grass
-    transition_EG = grass_empty_clonal_rate * prob_qGE + grass_seeds_empty_rate * gp_g
+    transition_EG = grass_empty_clonal_rate * prob_qEG + grass_seeds_empty_rate * gp_g
     
     #Colonization of grass cells by shrub
-    transition_GS = ((1-prob_qSG) *shrub_grass_rate + shrub_grass_reprd) * prob_qSG
+    transition_GS = ((1-prob_qGS) *shrub_grass_rate + shrub_grass_reprd) * prob_qGS
     
     #Mortality rates
     shrub_death = shrub_mortality_rate + shrub_compete_rate * prob_qSS
     grass_death = grass_mortality_rate
-    
-    #Colonization of burned cells by shrub
-    transition_BS = ((1-prob_qSB) * shrub_burned_rate + shrub_empty_reprd) * prob_qSB
-    
-    #Colonization of burned cells by grass
-    transition_BG = grass_empty_clonal_rate * prob_qGB + grass_seeds_empty_rate * gp_g
-
 
     self.report(transition_ES, "Results/transES")
     self.report(transition_EG, "Results/transEG")
     self.report(transition_GS, "Results/transGS")
     self.report(shrub_death, "Results/s_death")
-    #self.report(grass_death, "Results/g_death")
-    self.report(transition_BS, "Results/transBS")
-    self.report(transition_BG, "Results/transBG")
 
     #final distribution map 
 
@@ -133,51 +97,24 @@ class shrubmanagement(DynamicModel):
     fdistr_EG = ifthenelse((self.resultMap == 0) & (randomNumber<transition_EG), boolean(1), boolean(0))
     fdistr_GS = ifthenelse((self.resultMap == 2) & (randomNumber<transition_GS), boolean(1), boolean(0))
     fdistr_shrub_death = ifthenelse((self.resultMap == 3) & (randomNumber<shrub_death), boolean(1), boolean(0))
-    fdistr_grass_death = ifthenelse((self.resultMap == 2) & (randomNumber<grass_death), boolean(1), boolean(0))
-    fdistr_BS = ifthenelse((self.resultMap == 1) & (randomNumber<transition_BS), boolean(1), boolean(0))
-    fdistr_BG = ifthenelse((self.resultMap == 1) & (randomNumber<transition_BG), boolean(1), boolean(0))
-
-
+    
+    grass = cover(fdistr_ES, boolean(0))
+    grassclass = ifthen(grass, nominal(2))
     self.report(fdistr_ES, "Results/f_ES")
+
+    shrub = cover(fdistr_EG, fdistr_GS, boolean(0))
+    shrubclass = ifthen(shrub, nominal(3))
     self.report(fdistr_EG, "Results/f_EG")
     self.report(fdistr_GS, "Results/f_GS")
+
+    empty = cover(fdistr_shrub_death, boolean(0))
+    emptyclass = ifthen(empty, nominal(0))
     self.report(fdistr_shrub_death, "Results/f_sdeath")
-    self.report(fdistr_grass_death, "Results/f_gdeath")
-    self.report(fdistr_BS, "Results/f_BS")
-    self.report(fdistr_BG, "Results/f_BG")
+    self.report(emptyclass, "Results/empty")
 
-
-    #fire management strategy
-
-    # N = 100 
-    # ON = 1
-    # OFF = 0
-    # random.seed = (1379)
-    # global cells
-    # cells = np.zeros((N, N)).reshape(N, N)
-    
-    # for x in range (1, 200):
-    #   cells.itemset((x, x), ON)
-    #   cells.itemset((2 * x, int(x / 2)), ON)
-    #   cells.itemset((3 * x, int(x / 2)), ON)
-    
-    # newGrid = cells.copy()
-    # for x in range(1, N - 1):
-    #     for y in range(1, N - 1):
-    #         cell_state = window4total(scalar(self.resultMap == 3))
-    #         if cell_state == 1: 
-    #             for neighbor in window4total:
-    #                 if newGrid[neighbor] == 3 and random.random() < prob_qSB:
-    #                     newGrid[neighbor] = ON
-    #             if random.random() < prob_qBE:
-    #                 newGrid[x][y] = 1
-    #         elif cell_state == 1 and random.random() < prob_qSE:
-    #             newGrid[x][y] = 3
-    #         elif cell_state == 2:
-    #             for neighbor in window4total[(x, y)]:
-    #                 if newGrid[neighbor] == 1 and random.random() < prob_qGE:
-    #                     newGrid[neighbor] = 2
-
+    self.resultMap = cover(grassclass, shrubclass, emptyclass, self.resultMap)
+    self.report(self.resultMap, "Results/f_result")
+   
 
 nrOfTimeSteps=20
 myModel = shrubmanagement() 
