@@ -1,6 +1,5 @@
 from pcraster import *
 from pcraster.framework import *
-import numpy as np
 import random 
 
 shrubdevelopment = 0
@@ -14,10 +13,15 @@ class shrubmanagement(DynamicModel):
       
   def initial(self):
     # initial distribution of shrubs 10%, grass 80%, empty 10%
-    map = uniform(1)
-    initialdistr = ifthenelse(map < 0.1, nominal(3), ifthenelse(map>0.9, nominal(0), nominal(2))) 
-    self.report(initialdistr, "initialdistr")
-    self.resultMap = self.readmap("initialdistr")
+    #map = uniform(1)
+    #initialdistr = ifthenelse(map < 0.1, nominal(3), ifthenelse(map>0.9, nominal(0), nominal(2))) 
+    #initial_d = asc2map("C:\Users\johnk\Desktop\geosim\final_geosim\GitHub\GSM\initialdistr1")
+    #Result = lookupnominal(r"C:\Users\johnk\Desktop\geosim\final_geosim\GitHub\GSM\legend", r"C:\Users\johnk\Desktop\geosim\final_geosim\GitHub\GSM\initialdistr1.txt")
+    #self.report(initialdistr, "initialdistr")
+    #self.resultMap = self.readmap("initialdistr")
+    #self.report(Result, "initial_d")
+    self.resultMap = self.readmap("initialdist2")
+    
     
     #self.report(self.resultMap, "result_map")
     self.adultplants = 40
@@ -116,40 +120,63 @@ class shrubmanagement(DynamicModel):
     self.report(transition_EG, "Results/transEG")
     self.report(transition_GS, "Results/transGS")
     self.report(shrub_death, "Results/s_death")
-    self.report(grass_death, "Results/g_death")
+    #self.report(grass_death, "Results/g_death")
     self.report(transition_BS, "Results/transBS")
     self.report(transition_BG, "Results/transBG")
 
+    #final distribution map 
+
+    randomNumber = uniform(1)
+    self.report(randomNumber, "Results/f_distr")
+
+    fdistr_ES = ifthenelse((self.resultMap == 0) & (randomNumber<transition_ES), boolean(1), boolean(0))
+    fdistr_EG = ifthenelse((self.resultMap == 0) & (randomNumber<transition_EG), boolean(1), boolean(0))
+    fdistr_GS = ifthenelse((self.resultMap == 2) & (randomNumber<transition_GS), boolean(1), boolean(0))
+    fdistr_shrub_death = ifthenelse((self.resultMap == 3) & (randomNumber<shrub_death), boolean(1), boolean(0))
+    fdistr_grass_death = ifthenelse((self.resultMap == 2) & (randomNumber<grass_death), boolean(1), boolean(0))
+    fdistr_BS = ifthenelse((self.resultMap == 1) & (randomNumber<transition_BS), boolean(1), boolean(0))
+    fdistr_BG = ifthenelse((self.resultMap == 1) & (randomNumber<transition_BG), boolean(1), boolean(0))
+
+
+    self.report(fdistr_ES, "Results/f_ES")
+    self.report(fdistr_EG, "Results/f_EG")
+    self.report(fdistr_GS, "Results/f_GS")
+    self.report(fdistr_shrub_death, "Results/f_sdeath")
+    self.report(fdistr_grass_death, "Results/f_gdeath")
+    self.report(fdistr_BS, "Results/f_BS")
+    self.report(fdistr_BG, "Results/f_BG")
+
+
     #fire management strategy
 
-    N = 100 
-    ON = 1
-    OFF = 0
-    random.seed = (1379)
-    global cells
-    cells = np.zeros((N, N)).reshape(N, N)
+    # N = 100 
+    # ON = 1
+    # OFF = 0
+    # random.seed = (1379)
+    # global cells
+    # cells = np.zeros((N, N)).reshape(N, N)
     
-    for x in range (1, 200):
-      cells.itemset((x, x), ON)
-      cells.itemset((2 * x, int(x / 2)), ON)
-      cells.itemset((3 * x, int(x / 2)), ON)
+    # for x in range (1, 200):
+    #   cells.itemset((x, x), ON)
+    #   cells.itemset((2 * x, int(x / 2)), ON)
+    #   cells.itemset((3 * x, int(x / 2)), ON)
     
-    newGrid = cells.copy()
-    for x in range(1, N - 1):
-        for y in range(1, N - 1):
-            cell_state = window4total(scalar(self.resultMap == 3))
-            if cell_state == 1: 
-                for neighbor in window4total:
-                    if newGrid[neighbor] == 3 and random.random() < prob_qSB:
-                        newGrid[neighbor] = ON
-                if random.random() < prob_qBE:
-                    newGrid[x][y] = 1
-            elif cell_state == 1 and random.random() < prob_qSE:
-                newGrid[x][y] = 3
-            elif cell_state == 2:
-                for neighbor in window4total[(x, y)]:
-                    if newGrid[neighbor] == 1 and random.random() < prob_qGE:
-                        newGrid[neighbor] = 2
+    # newGrid = cells.copy()
+    # for x in range(1, N - 1):
+    #     for y in range(1, N - 1):
+    #         cell_state = window4total(scalar(self.resultMap == 3))
+    #         if cell_state == 1: 
+    #             for neighbor in window4total:
+    #                 if newGrid[neighbor] == 3 and random.random() < prob_qSB:
+    #                     newGrid[neighbor] = ON
+    #             if random.random() < prob_qBE:
+    #                 newGrid[x][y] = 1
+    #         elif cell_state == 1 and random.random() < prob_qSE:
+    #             newGrid[x][y] = 3
+    #         elif cell_state == 2:
+    #             for neighbor in window4total[(x, y)]:
+    #                 if newGrid[neighbor] == 1 and random.random() < prob_qGE:
+    #                     newGrid[neighbor] = 2
 
 
 nrOfTimeSteps=20

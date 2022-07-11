@@ -1,0 +1,3 @@
+0 empty
+2 shrub
+3 grass
