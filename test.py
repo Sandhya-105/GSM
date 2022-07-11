@@ -15,7 +15,7 @@ class shrubmanagement(DynamicModel):
     #initialdistr = ifthenelse(map < 0.1, nominal(3), ifthenelse(map>0.9, nominal(0), nominal(2))) 
     #self.report(initialdistr, "initialdistr")
     #self.resultMap = self.readmap("initialdistr")
-    self.resultMap = self.readmap("initial2")
+    self.resultMap = self.readmap("initial3")
     self.totalCells = 200 * 200
 
   def dynamic(self): # 0 empty, 2 grass, 3 shrub
